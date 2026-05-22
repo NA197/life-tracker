@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Track</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 420px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top));
+        }
+
+        header { padding: 8px 0 28px; }
+
+        .date-display { font-size: 22px; font-weight: 700; color: #fff; }
+        .date-sub { font-size: 13px; color: #666; margin-top: 4px; }
+
+        /* Cards */
+        .card {
+            background: #16213e;
+            border: 2px solid #16213e;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
+            transition: all 0.15s ease;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .card-title {
+            font-size: 17px; font-weight: 600; color: #fff;
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .card-title .icon { font-size: 24px; }
+
+        .card-status {
+            font-size: 13px; color: #555;
+            padding: 4px 12px; border-radius: 20px; background: #1a1a2e;
+        }
+
+        .card-status.active { color: #e94560; background: #2a1525; }
+        .card-status.good { color: #4ecca3; background: #152a25; }
+
+        /* Toggles */
+        .drink-toggle {
+            display: flex; gap: 0; margin-top: 18px;
+            border-radius: 14px; overflow: hidden;
+        }
+
+        .drink-opt {
+            flex: 1; padding: 16px; border: none;
+            background: #1a1a2e; color: #666;
+            font-size: 16px; font-weight: 600;
+            cursor: pointer; transition: all 0.15s;
+        }
+
+        .drink-opt:first-child { border-radius: 14px 0 0 14px; }
+        .drink-opt:last-child { border-radius: 0 14px 14px 0; }
+        .drink-opt.selected-no { background: #152a25; color: #4ecca3; }
+        .drink-opt.selected-yes { background: #2a1525; color: #e94560; }
+        .drink-opt:active { transform: scale(0.97); }
+
+        .time-inputs { display: none; margin-top: 16px; gap: 12px; }
+        .time-inputs.show { display: flex; }
+
+        .second-round { display: none; margin-top: 14px; }
+        .second-round.show { display: block; }
+
+        .time-field { flex: 1; }
+
+        .time-label {
+            font-size: 11px; text-transform: uppercase;
+            letter-spacing: 1px; color: #555; margin-bottom: 6px;
+        }
+
+        .time-input {
+            width: 100%; background: #1a1a2e;
+            border: 1px solid #2a2a4a; border-radius: 12px;
+            padding: 12px 14px; color: #fff;
+            font-size: 16px; font-family: inherit; outline: none;
+            -webkit-appearance: none;
+        }
+
+        .time-input:focus { border-color: #e94560; }
+
+        .wake-btn {
+            margin-top: 18px; width: 100%; padding: 18px;
+            border: 2px dashed #2a2a4a; border-radius: 14px;
+            background: transparent; color: #888;
+            font-size: 16px; font-family: inherit;
+            cursor: pointer; transition: all 0.15s;
+        }
+
+        .wake-btn:active { transform: scale(0.97); }
+
+        .wake-btn.logged {
+            border: 2px solid #4ecca3; background: #152a25;
+            color: #4ecca3; font-weight: 600;
+        }
+
+        .pushup-toggle {
+            display: flex; gap: 0; margin-top: 18px;
+            border-radius: 14px; overflow: hidden;
+        }
+
+        .pushup-opt {
+            flex: 1; padding: 20px; border: none;
+            background: #1a1a2e; color: #666;
+            font-size: 18px; font-weight: 700;
+            cursor: pointer; transition: all 0.15s;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 4px;
+        }
+
+        .pushup-opt:first-child { border-radius: 14px 0 0 14px; }
+        .pushup-opt:last-child { border-radius: 0 14px 14px 0; }
+        .pushup-opt .sub { font-size: 11px; font-weight: 400; text-transform: uppercase; letter-spacing: 1px; }
+        .pushup-opt.selected-yes { background: #152a25; color: #4ecca3; }
+        .pushup-opt.selected-no { background: #2a1525; color: #e94560; }
+        .pushup-opt:active { transform: scale(0.97); }
+
+        .card.state-good { border-color: #4ecca3; }
+        .card.state-bad { border-color: #e94560; }
+
+        /* Streak bar */
+        .streak-bar {
+            margin-top: 8px; padding: 16px 24px;
+            background: #16213e; border-radius: 20px;
+            display: flex; justify-content: space-around; text-align: center;
+        }
+
+        .streak-item .streak-val { font-size: 24px; font-weight: 700; color: #fff; }
+        .streak-item .streak-label {
+            font-size: 11px; color: #555; margin-top: 2px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        /* Views */
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* ── Stats page ── */
+        .stat-cards {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #16213e; border-radius: 16px; padding: 16px;
+            text-align: center;
+        }
+
+        .stat-card.full { grid-column: 1 / -1; }
+
+        .stat-num { font-size: 28px; font-weight: 700; color: #fff; }
+        .stat-num.red { color: #e94560; }
+        .stat-num.green { color: #4ecca3; }
+        .stat-num.yellow { color: #f0a500; }
+
+        .stat-label {
+            font-size: 11px; color: #555; margin-top: 4px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        .stat-compare {
+            font-size: 11px; margin-top: 4px; font-weight: 600;
+        }
+
+        .stat-compare.better { color: #4ecca3; }
+        .stat-compare.worse { color: #e94560; }
+        .stat-compare.same { color: #555; }
+
+        .chart-section { margin-bottom: 24px; }
+
+        .chart-title {
+            font-size: 14px; font-weight: 600; color: #fff;
+            margin-bottom: 14px;
+        }
+
+        /* Heatmap calendar */
+        .heatmap-container {
+            background: #16213e; border-radius: 16px; padding: 16px;
+        }
+
+        .heatmap-days {
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            gap: 4px; margin-bottom: 6px;
+        }
+
+        .heatmap-day-label {
+            font-size: 10px; color: #444; text-align: center;
+            padding-bottom: 4px;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1; border-radius: 4px;
+            background: #1a1a2e; position: relative;
+        }
+
+        .heatmap-cell.great { background: #1a6b4a; }
+        .heatmap-cell.good { background: #2a6b3a; }
+        .heatmap-cell.ok { background: #8b6914; }
+        .heatmap-cell.bad { background: #a33a3a; }
+        .heatmap-cell.terrible { background: #e94560; }
+        .heatmap-cell.empty { background: #1e2235; }
+        .heatmap-cell.future { background: transparent; }
+
+        .heatmap-cell.today {
+            outline: 2px solid #fff;
+            outline-offset: -1px;
+        }
+
+        .heatmap-week-label {
+            font-size: 9px; color: #444; text-align: right;
+            padding-right: 6px; display: flex; align-items: center;
+            justify-content: flex-end;
+        }
+
+        .heatmap-months {
+            display: flex; justify-content: space-between;
+            padding: 8px 2px 0;
+        }
+
+        .heatmap-month-label {
+            font-size: 10px; color: #444;
+        }
+
+        .heatmap-legend {
+            display: flex; align-items: center; justify-content: center;
+            gap: 4px; margin-top: 12px; font-size: 10px; color: #555;
+        }
+
+        .heatmap-legend-cell {
+            width: 12px; height: 12px; border-radius: 3px;
+        }
+
+        .heatmap-legend-text { margin: 0 6px; }
+
+        /* Metric rows under heatmap */
+        .metric-breakdown {
+            background: #16213e; border-radius: 16px; padding: 16px;
+            margin-top: 12px;
+        }
+
+        .metric-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0; border-bottom: 1px solid #1e2540;
+        }
+
+        .metric-row:last-child { border-bottom: none; }
+
+        .metric-left {
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .metric-icon { font-size: 18px; }
+
+        .metric-name { font-size: 14px; color: #ccc; }
+
+        .metric-right { text-align: right; }
+
+        .metric-val { font-size: 18px; font-weight: 700; }
+        .metric-val.red { color: #e94560; }
+        .metric-val.green { color: #4ecca3; }
+
+        .metric-detail { font-size: 11px; color: #555; margin-top: 2px; }
+
+        /* ── History ── */
+        .history-day {
+            background: #16213e; border-radius: 16px;
+            padding: 16px 20px; margin-bottom: 10px;
+        }
+
+        .history-date { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 10px; }
+        .history-items { display: flex; flex-direction: column; gap: 6px; }
+
+        .history-row {
+            display: flex; justify-content: space-between;
+            font-size: 13px; color: #888;
+        }
+
+        .history-row .val { font-weight: 600; }
+        .history-row .val.red { color: #e94560; }
+        .history-row .val.green { color: #4ecca3; }
+        .history-row .val.dim { color: #444; }
+
+        .history-month {
+            font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+            color: #444; margin: 18px 0 10px; padding-left: 4px;
+        }
+
+        .load-more-btn {
+            width: 100%; padding: 14px; margin-top: 8px;
+            background: #16213e; border: 1px solid #2a2a4a;
+            border-radius: 14px; color: #666; font-size: 14px;
+            font-family: inherit; cursor: pointer;
+        }
+
+        .load-more-btn:active { background: #1e2a4a; }
+
+        .empty-state {
+            text-align: center; padding: 40px 20px;
+            color: #444; font-size: 14px;
+        }
+
+        /* ── Trends page (line charts) ── */
+        .line-chart-card {
+            background: #16213e; border-radius: 16px;
+            padding: 18px 16px 14px; margin-bottom: 16px;
+        }
+
+        .line-chart-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 12px;
+        }
+
+        .line-chart-title {
+            font-size: 14px; font-weight: 600; color: #fff;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .line-chart-title .lc-icon { font-size: 18px; }
+
+        .line-chart-current {
+            font-size: 22px; font-weight: 700;
+        }
+
+        .line-chart-current .lc-sub {
+            font-size: 11px; font-weight: 400; color: #555;
+            display: block;
+        }
+
+        .chart-svg {
+            width: 100%; overflow: visible;
+        }
+
+        .chart-grid-line {
+            stroke: #1e2540; stroke-width: 1;
+        }
+
+        .chart-line {
+            fill: none; stroke-width: 2.5;
+            stroke-linecap: round; stroke-linejoin: round;
+        }
+
+        .chart-area { opacity: 0.15; }
+
+        .chart-dot {
+            stroke-width: 2;
+        }
+
+        .chart-x-labels {
+            display: flex; justify-content: space-between;
+            padding: 6px 0 0;
+        }
+
+        .chart-x-label {
+            font-size: 9px; color: #444; text-align: center;
+            flex: 1;
+        }
+
+        .trend-badge {
+            display: inline-block; font-size: 11px; font-weight: 600;
+            padding: 2px 8px; border-radius: 10px;
+        }
+
+        .trend-badge.up-good { background: #152a25; color: #4ecca3; }
+        .trend-badge.up-bad { background: #2a1525; color: #e94560; }
+        .trend-badge.down-good { background: #152a25; color: #4ecca3; }
+        .trend-badge.down-bad { background: #2a1525; color: #e94560; }
+        .trend-badge.flat { background: #1e2540; color: #555; }
+
+        /* Bottom nav */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #1a1a2e; border-top: 1px solid #2a2a4a;
+            display: flex; justify-content: center; gap: 20px;
+            padding: 12px 0;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+        }
+
+        .nav-tab {
+            background: none; border: none; color: #444;
+            font-size: 12px; cursor: pointer;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 4px;
+        }
+
+        .nav-tab .tab-icon { font-size: 22px; }
+        .nav-tab.active { color: #e94560; }
+
+        .spacer { height: 80px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ═══ TODAY ═══ -->
+        <div class="view active" id="view-today">
+            <header>
+                <div class="date-display" id="today-date"></div>
+                <div class="date-sub" id="today-sub"></div>
+            </header>
+
+            <div class="card" id="card-drink">
+                <div class="card-header">
+                    <div class="card-title"><span class="icon">🍺</span> Drinking tonight?</div>
+                    <span class="card-status" id="drink-status"></span>
+                </div>
+                <div class="drink-toggle">
+                    <button class="drink-opt" id="drink-no" onclick="setDrink(false)">No</button>
+                    <button class="drink-opt" id="drink-yes" onclick="setDrink(true)">Yes</button>
+                </div>
+                <div class="time-inputs" id="drink-times">
+                    <div class="time-field">
+                        <div class="time-label">Started</div>
+                        <input type="time" class="time-input" id="drink-start" onchange="saveDrinkTimes()">
+                    </div>
+                    <div class="time-field">
+                        <div class="time-label">Got home</div>
+                        <input type="time" class="time-input" id="drink-end" onchange="saveDrinkTimes()">
+                    </div>
+                </div>
+                <div class="second-round" id="second-round-row">
+                    <div class="time-label" style="margin-bottom:8px; margin-top:4px;">2nd round?</div>
+                    <div class="drink-toggle">
+                        <button class="drink-opt" id="round2-no" onclick="setRound2(false)">No</button>
+                        <button class="drink-opt" id="round2-yes" onclick="setRound2(true)">Yes</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="card-wake">
+                <div class="card-header">
+                    <div class="card-title"><span class="icon">⏰</span> Wake up</div>
+                    <span class="card-status" id="wake-status"></span>
+                </div>
+                <button class="wake-btn" id="wake-btn" onclick="logWake()">Tap when you wake up</button>
+            </div>
+
+            <div class="card" id="card-pushups">
+                <div class="card-header">
+                    <div class="card-title"><span class="icon">💪</span> 5 pushups before shower</div>
+                    <span class="card-status" id="pushup-status"></span>
+                </div>
+                <div class="pushup-toggle">
+                    <button class="pushup-opt" id="pushup-yes" onclick="setPushups(true)">✓<span class="sub">Did it</span></button>
+                    <button class="pushup-opt" id="pushup-no" onclick="setPushups(false)">✗<span class="sub">Skipped</span></button>
+                </div>
+            </div>
+
+            <div class="streak-bar">
+                <div class="streak-item">
+                    <div class="streak-val" id="streak-sober">0</div>
+                    <div class="streak-label">Sober nights</div>
+                </div>
+                <div class="streak-item">
+                    <div class="streak-val" id="streak-pushups">0</div>
+                    <div class="streak-label">Pushup streak</div>
+                </div>
+            </div>
+            <div class="spacer"></div>
+        </div>
+
+        <!-- ═══ STATS ═══ -->
+        <div class="view" id="view-stats">
+            <header>
+                <div class="date-display">Stats</div>
+                <div class="date-sub" id="stats-range"></div>
+            </header>
+
+            <div class="stat-cards" id="stat-cards"></div>
+
+            <div class="chart-section">
+                <div class="chart-title">Last 90 days</div>
+                <div class="heatmap-container">
+                    <div class="heatmap-days">
+                        <div class="heatmap-day-label">M</div>
+                        <div class="heatmap-day-label">T</div>
+                        <div class="heatmap-day-label">W</div>
+                        <div class="heatmap-day-label">T</div>
+                        <div class="heatmap-day-label">F</div>
+                        <div class="heatmap-day-label">S</div>
+                        <div class="heatmap-day-label">S</div>
+                    </div>
+                    <div id="heatmap-grid"></div>
+                    <div class="heatmap-legend">
+                        <span>Worse</span>
+                        <div class="heatmap-legend-cell" style="background:#e94560"></div>
+                        <div class="heatmap-legend-cell" style="background:#a33a3a"></div>
+                        <div class="heatmap-legend-cell" style="background:#8b6914"></div>
+                        <div class="heatmap-legend-cell" style="background:#2a6b3a"></div>
+                        <div class="heatmap-legend-cell" style="background:#1a6b4a"></div>
+                        <span>Better</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-breakdown" id="metric-breakdown"></div>
+
+            <div class="spacer"></div>
+        </div>
+
+        <!-- ═══ TRENDS ═══ -->
+        <div class="view" id="view-trends">
+            <header>
+                <div class="date-display">Trends</div>
+                <div class="date-sub">12-week view</div>
+            </header>
+
+            <div class="line-chart-card" id="chart-drink-line"></div>
+            <div class="line-chart-card" id="chart-round2-line"></div>
+            <div class="line-chart-card" id="chart-pushup-line"></div>
+            <div class="line-chart-card" id="chart-score-line"></div>
+
+            <div class="spacer"></div>
+        </div>
+
+        <!-- ═══ HISTORY ═══ -->
+        <div class="view" id="view-history">
+            <header>
+                <div class="date-display">History</div>
+                <div class="date-sub" id="history-sub"></div>
+            </header>
+            <div id="history-list"></div>
+            <div class="spacer"></div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <button class="nav-tab active" id="tab-today" onclick="switchView('today')">
+            <span class="tab-icon">◉</span> Today
+        </button>
+        <button class="nav-tab" id="tab-stats" onclick="switchView('stats')">
+            <span class="tab-icon">▦</span> Map
+        </button>
+        <button class="nav-tab" id="tab-trends" onclick="switchView('trends')">
+            <span class="tab-icon">⟋</span> Trends
+        </button>
+        <button class="nav-tab" id="tab-history" onclick="switchView('history')">
+            <span class="tab-icon">☰</span> History
+        </button>
+    </div>
+
+    <script>
+        // ── Data layer ──
+        function dateKey(d) { return 'track_' + d.toISOString().slice(0, 10); }
+        function todayKey() { return dateKey(new Date()); }
+        function load(key) { try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; } }
+        function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+        function today() { return load(todayKey()); }
+
+        function update(field, value) {
+            const key = todayKey();
+            const data = load(key);
+            if (value === null || value === undefined) delete data[field];
+            else data[field] = value;
+            data._updated = new Date().toISOString();
+            save(key, data);
+            refreshUI();
+        }
+
+        function daysAgo(n) {
+            const d = new Date(); d.setDate(d.getDate() - n);
+            return load(dateKey(d));
+        }
+
+        function hasData(data) {
+            return Object.keys(data).filter(k => !k.startsWith('_')).length > 0;
+        }
+
+        // ── Actions ──
+        function setDrink(yes) {
+            const data = today();
+            if (yes && data.drinking === true) {
+                update('drinking', null); update('drink_start', null);
+                update('drink_end', null); update('second_round', null); return;
+            }
+            if (!yes && data.drinking === false) { update('drinking', null); return; }
+            update('drinking', yes);
+            if (!yes) { update('drink_start', null); update('drink_end', null); update('second_round', null); }
+        }
+
+        function saveDrinkTimes() {
+            const s = document.getElementById('drink-start').value;
+            const e = document.getElementById('drink-end').value;
+            if (s) update('drink_start', s);
+            if (e) update('drink_end', e);
+        }
+
+        function setRound2(yes) {
+            const data = today();
+            if (yes && data.second_round === true) { update('second_round', null); return; }
+            if (!yes && data.second_round === false) { update('second_round', null); return; }
+            update('second_round', yes);
+        }
+
+        function logWake() {
+            const data = today();
+            if (data.wake) { update('wake', null); }
+            else { update('wake', new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })); }
+        }
+
+        function setPushups(yes) {
+            const data = today();
+            if (yes && data.pushups === true) { update('pushups', null); return; }
+            if (!yes && data.pushups === false) { update('pushups', null); return; }
+            update('pushups', yes);
+        }
+
+        // ── Streaks ──
+        function calcStreaks() {
+            let sober = 0, pushups = 0, sc = true, pc = true;
+            for (let i = 1; i <= 1095; i++) {
+                const data = daysAgo(i);
+                if (!hasData(data)) break;
+                if (sc && data.drinking === false) sober++; else sc = false;
+                if (pc && data.pushups === true) pushups++; else pc = false;
+            }
+            return { sober, pushups };
+        }
+
+        // ── Week helpers ──
+        function getWeekData(weeksAgo) {
+            const days = [];
+            const now = new Date();
+            const dayOfWeek = now.getDay() || 7; // Mon=1
+            const endOffset = (weeksAgo === 0) ? 0 : (dayOfWeek + (weeksAgo - 1) * 7);
+            const startOffset = (weeksAgo === 0) ? dayOfWeek - 1 : endOffset + 6;
+
+            for (let i = endOffset; i <= startOffset; i++) {
+                days.push(daysAgo(i));
+            }
+
+            let drinking = 0, secondRound = 0, pushupsDone = 0, logged = 0;
+            days.forEach(d => {
+                if (!hasData(d)) return;
+                logged++;
+                if (d.drinking === true) { drinking++; if (d.second_round === true) secondRound++; }
+                if (d.pushups === true) pushupsDone++;
+            });
+
+            return { drinking, secondRound, pushupsDone, logged, total: days.length };
+        }
+
+        function weekLabel(weeksAgo) {
+            const d = new Date();
+            d.setDate(d.getDate() - weeksAgo * 7);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        // ── Refresh Today UI ──
+        function refreshUI() {
+            const data = today();
+            const now = new Date();
+
+            document.getElementById('today-date').textContent =
+                now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+            const logged = Object.keys(data).filter(k => !k.startsWith('_')).length;
+            document.getElementById('today-sub').textContent =
+                logged > 0 ? logged + ' logged today' : 'Nothing logged yet';
+
+            // Drinking
+            const drinkCard = document.getElementById('card-drink');
+            const drinkStatus = document.getElementById('drink-status');
+            drinkCard.classList.remove('state-good', 'state-bad');
+            document.getElementById('drink-no').classList.remove('selected-no');
+            document.getElementById('drink-yes').classList.remove('selected-yes');
+            const round2Row = document.getElementById('second-round-row');
+            document.getElementById('round2-no').classList.remove('selected-no');
+            document.getElementById('round2-yes').classList.remove('selected-yes');
+
+            if (data.drinking === true) {
+                drinkCard.classList.add('state-bad');
+                document.getElementById('drink-yes').classList.add('selected-yes');
+                drinkStatus.textContent = data.second_round === true ? '2nd round' : 'Yes';
+                drinkStatus.className = 'card-status active';
+                document.getElementById('drink-times').classList.add('show');
+                round2Row.classList.add('show');
+                if (data.drink_start) document.getElementById('drink-start').value = data.drink_start;
+                if (data.drink_end) document.getElementById('drink-end').value = data.drink_end;
+                if (data.second_round === true) document.getElementById('round2-yes').classList.add('selected-yes');
+                else if (data.second_round === false) document.getElementById('round2-no').classList.add('selected-no');
+            } else if (data.drinking === false) {
+                drinkCard.classList.add('state-good');
+                document.getElementById('drink-no').classList.add('selected-no');
+                drinkStatus.textContent = 'Sober ✓';
+                drinkStatus.className = 'card-status good';
+                document.getElementById('drink-times').classList.remove('show');
+                round2Row.classList.remove('show');
+            } else {
+                drinkStatus.textContent = '';
+                drinkStatus.className = 'card-status';
+                document.getElementById('drink-times').classList.remove('show');
+                round2Row.classList.remove('show');
+            }
+
+            // Wake
+            const wakeBtn = document.getElementById('wake-btn');
+            const wakeCard = document.getElementById('card-wake');
+            const wakeStatus = document.getElementById('wake-status');
+            wakeCard.classList.remove('state-good');
+            if (data.wake) {
+                wakeCard.classList.add('state-good');
+                wakeBtn.classList.add('logged');
+                wakeBtn.textContent = data.wake;
+                wakeStatus.textContent = 'Logged';
+                wakeStatus.className = 'card-status good';
+            } else {
+                wakeBtn.classList.remove('logged');
+                wakeBtn.textContent = 'Tap when you wake up';
+                wakeStatus.textContent = '';
+                wakeStatus.className = 'card-status';
+            }
+
+            // Pushups
+            const pushupCard = document.getElementById('card-pushups');
+            const pushupStatus = document.getElementById('pushup-status');
+            pushupCard.classList.remove('state-good', 'state-bad');
+            document.getElementById('pushup-yes').classList.remove('selected-yes');
+            document.getElementById('pushup-no').classList.remove('selected-no');
+            if (data.pushups === true) {
+                pushupCard.classList.add('state-good');
+                document.getElementById('pushup-yes').classList.add('selected-yes');
+                pushupStatus.textContent = 'Done ✓';
+                pushupStatus.className = 'card-status good';
+            } else if (data.pushups === false) {
+                pushupCard.classList.add('state-bad');
+                document.getElementById('pushup-no').classList.add('selected-no');
+                pushupStatus.textContent = 'Skipped';
+                pushupStatus.className = 'card-status active';
+            } else {
+                pushupStatus.textContent = '';
+                pushupStatus.className = 'card-status';
+            }
+
+            // Streaks
+            const streaks = calcStreaks();
+            document.getElementById('streak-sober').textContent = streaks.sober;
+            document.getElementById('streak-pushups').textContent = streaks.pushups;
+        }
+
+        // ── Day score ──
+        function dayScore(data) {
+            // Returns: 'great','good','ok','bad','terrible','empty'
+            if (!hasData(data)) return 'empty';
+            let score = 0; // start neutral
+
+            if (data.drinking === false) score += 2;        // sober = big win
+            else if (data.drinking === true) {
+                score -= 1;                                  // drank
+                if (data.second_round === true) score -= 2;  // 2nd round = bad
+            }
+
+            if (data.pushups === true) score += 1;           // pushups = win
+            else if (data.pushups === false) score -= 0.5;   // skipped
+
+            if (score >= 2.5) return 'great';     // sober + pushups
+            if (score >= 1) return 'good';         // sober OR pushups
+            if (score >= 0) return 'ok';           // mixed
+            if (score >= -1.5) return 'bad';       // drank, no 2nd round
+            return 'terrible';                      // drank + 2nd round
+        }
+
+        // ── Stats page ──
+        function renderStats() {
+            const thisWeek = getWeekData(0);
+            const lastWeek = getWeekData(1);
+
+            // Summary cards
+            const cards = document.getElementById('stat-cards');
+            function compare(curr, prev, lowerBetter) {
+                if (prev === 0 && curr === 0) return '<div class="stat-compare same">—</div>';
+                const diff = curr - prev;
+                if (diff === 0) return '<div class="stat-compare same">Same as last week</div>';
+                const arrow = diff > 0 ? '↑' : '↓';
+                const better = lowerBetter ? diff < 0 : diff > 0;
+                return '<div class="stat-compare ' + (better ? 'better' : 'worse') + '">'
+                    + arrow + ' ' + Math.abs(diff) + ' vs last week</div>';
+            }
+
+            cards.innerHTML =
+                '<div class="stat-card">' +
+                    '<div class="stat-num red">' + thisWeek.drinking + '/' + thisWeek.total + '</div>' +
+                    '<div class="stat-label">Drinking nights</div>' +
+                    compare(thisWeek.drinking, lastWeek.drinking, true) +
+                '</div>' +
+                '<div class="stat-card">' +
+                    '<div class="stat-num ' + (thisWeek.secondRound > 0 ? 'red' : 'green') + '">' + thisWeek.secondRound + '</div>' +
+                    '<div class="stat-label">2nd rounds</div>' +
+                    compare(thisWeek.secondRound, lastWeek.secondRound, true) +
+                '</div>' +
+                '<div class="stat-card">' +
+                    '<div class="stat-num green">' + thisWeek.pushupsDone + '/' + thisWeek.total + '</div>' +
+                    '<div class="stat-label">Pushups done</div>' +
+                    compare(thisWeek.pushupsDone, lastWeek.pushupsDone, false) +
+                '</div>' +
+                '<div class="stat-card">' +
+                    '<div class="stat-num">' + (thisWeek.total - thisWeek.drinking) + '</div>' +
+                    '<div class="stat-label">Sober nights</div>' +
+                    compare(thisWeek.total - thisWeek.drinking, lastWeek.total - lastWeek.drinking, false) +
+                '</div>';
+
+            // ── Heatmap (90 days) ──
+            const grid = document.getElementById('heatmap-grid');
+            grid.innerHTML = '';
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = 'repeat(7, 1fr)';
+            grid.style.gap = '4px';
+
+            // Find the Monday 13 weeks ago to start the grid
+            const now = new Date();
+            const todayDow = now.getDay() || 7; // Mon=1, Sun=7
+            const daysBack = (13 * 7) - 1 + (todayDow - 1); // go back ~13 weeks to a Monday
+
+            // Build array of dates from that Monday to today
+            const cells = [];
+            for (let i = daysBack; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const data = load(dateKey(d));
+                const score = dayScore(data);
+                const isToday = i === 0;
+                const isFuture = false;
+                cells.push({ date: d, score, isToday, data });
+            }
+
+            // Fill remaining cells for the current week if needed (future days)
+            const remaining = 7 - (cells.length % 7);
+            if (remaining < 7) {
+                for (let i = 1; i <= remaining; i++) {
+                    cells.push({ date: null, score: 'future', isToday: false });
+                }
+            }
+
+            cells.forEach(c => {
+                const cell = document.createElement('div');
+                cell.className = 'heatmap-cell ' + c.score;
+                if (c.isToday) cell.classList.add('today');
+                if (c.date) {
+                    cell.title = c.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                }
+                grid.appendChild(cell);
+            });
+
+            // ── Metric breakdown (last 30 days) ──
+            const mb = document.getElementById('metric-breakdown');
+            let drinkCount = 0, round2Count = 0, pushupCount = 0, soberCount = 0, totalDays = 0;
+            for (let i = 0; i < 30; i++) {
+                const data = daysAgo(i);
+                if (!hasData(data)) continue;
+                totalDays++;
+                if (data.drinking === true) { drinkCount++; if (data.second_round === true) round2Count++; }
+                if (data.drinking === false) soberCount++;
+                if (data.pushups === true) pushupCount++;
+            }
+
+            const pct = (n, t) => t > 0 ? Math.round((n / t) * 100) + '%' : '—';
+
+            mb.innerHTML =
+                '<div class="metric-row">' +
+                    '<div class="metric-left"><span class="metric-icon">🍺</span><span class="metric-name">Drinking nights</span></div>' +
+                    '<div class="metric-right"><div class="metric-val red">' + drinkCount + '</div><div class="metric-detail">' + pct(drinkCount, totalDays) + ' of logged days</div></div>' +
+                '</div>' +
+                '<div class="metric-row">' +
+                    '<div class="metric-left"><span class="metric-icon">🌙</span><span class="metric-name">2nd rounds</span></div>' +
+                    '<div class="metric-right"><div class="metric-val ' + (round2Count > 0 ? 'red' : 'green') + '">' + round2Count + '</div><div class="metric-detail">' + (drinkCount > 0 ? pct(round2Count, drinkCount) + ' of drink nights' : '—') + '</div></div>' +
+                '</div>' +
+                '<div class="metric-row">' +
+                    '<div class="metric-left"><span class="metric-icon">✅</span><span class="metric-name">Sober nights</span></div>' +
+                    '<div class="metric-right"><div class="metric-val green">' + soberCount + '</div><div class="metric-detail">' + pct(soberCount, totalDays) + ' of logged days</div></div>' +
+                '</div>' +
+                '<div class="metric-row">' +
+                    '<div class="metric-left"><span class="metric-icon">💪</span><span class="metric-name">Pushups done</span></div>' +
+                    '<div class="metric-right"><div class="metric-val green">' + pushupCount + '</div><div class="metric-detail">' + pct(pushupCount, totalDays) + ' of logged days</div></div>' +
+                '</div>';
+
+            document.getElementById('stats-range').textContent = totalDays + ' days logged';
+        }
+
+        // ── History (3 years, paginated) ──
+        let historyOffset = 0;
+        const HISTORY_PAGE = 30;
+        const HISTORY_MAX = 1095; // 3 years
+
+        function renderHistory(append) {
+            const list = document.getElementById('history-list');
+            if (!append) { list.innerHTML = ''; historyOffset = 0; }
+
+            let count = 0;
+            let lastMonth = '';
+            let foundAny = false;
+            const start = historyOffset;
+
+            for (let i = start; i < HISTORY_MAX && count < HISTORY_PAGE; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const data = load(dateKey(d));
+
+                historyOffset = i + 1;
+
+                if (!hasData(data) && i > 0) continue;
+                foundAny = true;
+                count++;
+
+                // Month separator
+                const month = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                if (month !== lastMonth && i > 0) {
+                    const mDiv = document.createElement('div');
+                    mDiv.className = 'history-month';
+                    mDiv.textContent = month;
+                    list.appendChild(mDiv);
+                    lastMonth = month;
+                }
+
+                const div = document.createElement('div');
+                div.className = 'history-day';
+
+                const label = i === 0 ? 'Today' : d.toLocaleDateString('en-US', {
+                    weekday: 'short', month: 'short', day: 'numeric'
+                });
+
+                let rows = '';
+                if (data.drinking === true) {
+                    let detail = 'Yes';
+                    if (data.drink_start && data.drink_end) detail = data.drink_start + ' → ' + data.drink_end;
+                    else if (data.drink_start) detail = 'From ' + data.drink_start;
+                    rows += '<div class="history-row"><span>Drinking</span><span class="val red">' + detail + '</span></div>';
+                    if (data.second_round === true) rows += '<div class="history-row"><span>2nd round</span><span class="val red">Yes</span></div>';
+                    else if (data.second_round === false) rows += '<div class="history-row"><span>2nd round</span><span class="val green">No ✓</span></div>';
+                } else if (data.drinking === false) {
+                    rows += '<div class="history-row"><span>Drinking</span><span class="val green">No ✓</span></div>';
+                }
+                if (data.wake) rows += '<div class="history-row"><span>Woke up</span><span class="val green">' + data.wake + '</span></div>';
+                if (data.pushups === true) rows += '<div class="history-row"><span>Pushups</span><span class="val green">Done ✓</span></div>';
+                else if (data.pushups === false) rows += '<div class="history-row"><span>Pushups</span><span class="val red">Skipped</span></div>';
+
+                if (!rows && i === 0) rows = '<div class="history-row"><span class="val dim">No entries yet</span></div>';
+
+                div.innerHTML = '<div class="history-date">' + label + '</div><div class="history-items">' + rows + '</div>';
+                list.appendChild(div);
+            }
+
+            // Remove old load-more button
+            const oldBtn = list.querySelector('.load-more-btn');
+            if (oldBtn) oldBtn.remove();
+
+            // Add load-more if there could be more data
+            if (historyOffset < HISTORY_MAX && count >= HISTORY_PAGE) {
+                const btn = document.createElement('button');
+                btn.className = 'load-more-btn';
+                btn.textContent = 'Load more';
+                btn.onclick = () => renderHistory(true);
+                list.appendChild(btn);
+            }
+
+            if (!foundAny && !append) {
+                list.innerHTML = '<div class="empty-state">No entries yet. Start logging today!</div>';
+            }
+
+            // Count total entries
+            let total = 0;
+            for (let i = 0; i < HISTORY_MAX; i++) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                if (hasData(load(dateKey(d)))) total++;
+            }
+            document.getElementById('history-sub').textContent =
+                total > 0 ? total + ' days logged (keeps 3 years)' : 'Keeps 3 years of data';
+        }
+
+        // ── Line chart builder ──
+        function buildLineChart(containerId, config) {
+            // config: { title, icon, data[], color, max, lowerBetter, suffix }
+            const el = document.getElementById(containerId);
+            const data = config.data; // array of { label, value }
+            const maxVal = config.max || Math.max(...data.map(d => d.value), 1);
+            const W = 340, H = 100, padL = 0, padR = 0, padT = 5, padB = 5;
+            const chartW = W - padL - padR;
+            const chartH = H - padT - padB;
+
+            // Calculate trend
+            const recent = data.slice(-4).reduce((s, d) => s + d.value, 0) / 4;
+            const older = data.slice(0, 4).reduce((s, d) => s + d.value, 0) / 4;
+            const diff = recent - older;
+            let trendClass = 'flat', trendText = '—';
+            if (Math.abs(diff) > 0.3) {
+                const up = diff > 0;
+                const good = config.lowerBetter ? !up : up;
+                trendClass = (up ? 'up' : 'down') + '-' + (good ? 'good' : 'bad');
+                trendText = (up ? '↑' : '↓') + ' ' + Math.abs(diff).toFixed(1) + (config.suffix || '');
+            }
+
+            // Build SVG points
+            const points = data.map((d, i) => {
+                const x = padL + (i / (data.length - 1)) * chartW;
+                const y = padT + chartH - (d.value / maxVal) * chartH;
+                return { x, y, val: d.value };
+            });
+
+            const linePoints = points.map(p => p.x + ',' + p.y).join(' ');
+            const areaPoints = padL + ',' + (padT + chartH) + ' ' + linePoints + ' ' + (padL + chartW) + ',' + (padT + chartH);
+
+            // Grid lines
+            let gridLines = '';
+            for (let i = 0; i <= 3; i++) {
+                const y = padT + (i / 3) * chartH;
+                gridLines += '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + chartW) + '" y2="' + y + '" class="chart-grid-line"/>';
+            }
+
+            // Dots
+            let dots = '';
+            points.forEach(p => {
+                dots += '<circle cx="' + p.x + '" cy="' + p.y + '" r="4" fill="' + config.color + '" stroke="#16213e" class="chart-dot"/>';
+            });
+
+            // X labels
+            let xLabels = '';
+            data.forEach(d => {
+                xLabels += '<div class="chart-x-label">' + d.label + '</div>';
+            });
+
+            const currentVal = data[data.length - 1].value;
+
+            el.innerHTML =
+                '<div class="line-chart-header">' +
+                    '<div class="line-chart-title"><span class="lc-icon">' + config.icon + '</span> ' + config.title + '</div>' +
+                    '<div class="line-chart-current" style="color:' + config.color + '">' + currentVal + (config.suffix || '') +
+                        '<span class="lc-sub">this week <span class="trend-badge ' + trendClass + '">' + trendText + '</span></span>' +
+                    '</div>' +
+                '</div>' +
+                '<svg class="chart-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
+                    gridLines +
+                    '<polygon points="' + areaPoints + '" fill="' + config.color + '" class="chart-area"/>' +
+                    '<polyline points="' + linePoints + '" stroke="' + config.color + '" class="chart-line"/>' +
+                    dots +
+                '</svg>' +
+                '<div class="chart-x-labels">' + xLabels + '</div>';
+        }
+
+        // ── Render Trends ──
+        function renderTrends() {
+            const weeks = 12;
+            const weekData = [];
+            for (let w = weeks - 1; w >= 0; w--) {
+                const wd = getWeekData(w);
+                const label = w === 0 ? 'Now' : w + 'w';
+                weekData.push({ ...wd, label });
+            }
+
+            // Drinking nights per week
+            buildLineChart('chart-drink-line', {
+                title: 'Drinking nights',
+                icon: '🍺',
+                color: '#e94560',
+                max: 7,
+                lowerBetter: true,
+                suffix: '/7',
+                data: weekData.map(w => ({ label: w.label, value: w.drinking }))
+            });
+
+            // 2nd rounds per week
+            buildLineChart('chart-round2-line', {
+                title: '2nd rounds',
+                icon: '🌙',
+                color: '#ff6b8a',
+                max: 5,
+                lowerBetter: true,
+                data: weekData.map(w => ({ label: w.label, value: w.secondRound }))
+            });
+
+            // Pushups per week
+            buildLineChart('chart-pushup-line', {
+                title: 'Pushups done',
+                icon: '💪',
+                color: '#4ecca3',
+                max: 7,
+                lowerBetter: false,
+                suffix: '/7',
+                data: weekData.map(w => ({ label: w.label, value: w.pushupsDone }))
+            });
+
+            // Good days (sober + pushups) per week
+            buildLineChart('chart-score-line', {
+                title: 'Good days',
+                icon: '⭐',
+                color: '#f0a500',
+                max: 7,
+                lowerBetter: false,
+                data: weekData.map(w => ({
+                    label: w.label,
+                    value: Math.min(w.total, w.total - w.drinking) + (w.pushupsDone > 0 ? 1 : 0)
+                }))
+            });
+        }
+
+        // ── Nav ──
+        function switchView(view) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('view-' + view).classList.add('active');
+            document.getElementById('tab-' + view).classList.add('active');
+            if (view === 'history') renderHistory(false);
+            if (view === 'stats') renderStats();
+            if (view === 'trends') renderTrends();
+            window.scrollTo(0, 0);
+        }
+
+        // ── Init ──
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+        refreshUI();
+    </script>
+</body>
+</html>
