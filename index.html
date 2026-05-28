@@ -1202,8 +1202,21 @@
             window.scrollTo(0, 0);
         }
 
-        // ── Backfill: vape-free streak from May 18 2026 ──
+        // ── Backfill: vape-free streak from May 25 2026 ──
         (function() {
+            // Fix: remove wrong vape-free flags from May 18-24
+            if (!localStorage.getItem('_backfill_vape_fix2')) {
+                for (let d = new Date('2026-05-18'); d < new Date('2026-05-25'); d.setDate(d.getDate() + 1)) {
+                    const key = 'track_' + d.toISOString().slice(0, 10);
+                    const data = load(key);
+                    if (data.vape_free) {
+                        delete data.vape_free;
+                        save(key, data);
+                    }
+                }
+                localStorage.setItem('_backfill_vape_fix2', '1');
+            }
+            // Seed vape-free from May 25 onwards
             if (localStorage.getItem('_backfill_vape_done')) return;
             const start = new Date('2026-05-25');
             const today = new Date();
