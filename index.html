@@ -1205,7 +1205,7 @@
         // ── Backfill: vape-free streak from May 18 2026 ──
         (function() {
             if (localStorage.getItem('_backfill_vape_done')) return;
-            const start = new Date('2026-05-18');
+            const start = new Date('2026-05-25');
             const today = new Date();
             for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
                 const key = 'track_' + d.toISOString().slice(0, 10);
