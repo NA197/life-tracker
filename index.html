@@ -425,6 +425,17 @@
                 <div class="date-sub" id="today-sub"></div>
             </header>
 
+            <div class="card" id="card-vape">
+                <div class="card-header">
+                    <div class="card-title"><span class="icon">🚭</span> Vape-free today?</div>
+                    <span class="card-status" id="vape-status"></span>
+                </div>
+                <div class="pushup-toggle">
+                    <button class="pushup-opt" id="vape-yes" onclick="setVape(true)">✓<span class="sub">Clean</span></button>
+                    <button class="pushup-opt" id="vape-no" onclick="setVape(false)">✗<span class="sub">Vaped</span></button>
+                </div>
+            </div>
+
             <div class="card" id="card-drink">
                 <div class="card-header">
                     <div class="card-title"><span class="icon">🍺</span> Drinking tonight?</div>
@@ -473,6 +484,10 @@
             </div>
 
             <div class="streak-bar">
+                <div class="streak-item">
+                    <div class="streak-val" id="streak-vape">0</div>
+                    <div class="streak-label">Vape-free days</div>
+                </div>
                 <div class="streak-item">
                     <div class="streak-val" id="streak-sober">0</div>
                     <div class="streak-label">Sober nights</div>
@@ -531,6 +546,7 @@
                 <div class="date-sub">12-week view</div>
             </header>
 
+            <div class="line-chart-card" id="chart-vape-line"></div>
             <div class="line-chart-card" id="chart-drink-line"></div>
             <div class="line-chart-card" id="chart-round2-line"></div>
             <div class="line-chart-card" id="chart-pushup-line"></div>
@@ -631,16 +647,24 @@
             update('pushups', yes);
         }
 
+        function setVape(clean) {
+            const data = today();
+            if (clean && data.vape_free === true) { update('vape_free', null); return; }
+            if (!clean && data.vape_free === false) { update('vape_free', null); return; }
+            update('vape_free', clean);
+        }
+
         // ── Streaks ──
         function calcStreaks() {
-            let sober = 0, pushups = 0, sc = true, pc = true;
+            let sober = 0, pushups = 0, vape = 0, sc = true, pc = true, vc = true;
             for (let i = 1; i <= 1095; i++) {
                 const data = daysAgo(i);
                 if (!hasData(data)) break;
                 if (sc && data.drinking === false) sober++; else sc = false;
                 if (pc && data.pushups === true) pushups++; else pc = false;
+                if (vc && data.vape_free === true) vape++; else vc = false;
             }
-            return { sober, pushups };
+            return { sober, pushups, vape };
         }
 
         // ── Week helpers ──
@@ -655,15 +679,16 @@
                 days.push(daysAgo(i));
             }
 
-            let drinking = 0, secondRound = 0, pushupsDone = 0, logged = 0;
+            let drinking = 0, secondRound = 0, pushupsDone = 0, vapeFree = 0, logged = 0;
             days.forEach(d => {
                 if (!hasData(d)) return;
                 logged++;
                 if (d.drinking === true) { drinking++; if (d.second_round === true) secondRound++; }
                 if (d.pushups === true) pushupsDone++;
+                if (d.vape_free === true) vapeFree++;
             });
 
-            return { drinking, secondRound, pushupsDone, logged, total: days.length };
+            return { drinking, secondRound, pushupsDone, vapeFree, logged, total: days.length };
         }
 
         function weekLabel(weeksAgo) {
@@ -683,6 +708,27 @@
             const logged = Object.keys(data).filter(k => !k.startsWith('_')).length;
             document.getElementById('today-sub').textContent =
                 logged > 0 ? logged + ' logged today' : 'Nothing logged yet';
+
+            // Vaping
+            const vapeCard = document.getElementById('card-vape');
+            const vapeStatus = document.getElementById('vape-status');
+            vapeCard.classList.remove('state-good', 'state-bad');
+            document.getElementById('vape-yes').classList.remove('selected-yes');
+            document.getElementById('vape-no').classList.remove('selected-no');
+            if (data.vape_free === true) {
+                vapeCard.classList.add('state-good');
+                document.getElementById('vape-yes').classList.add('selected-yes');
+                vapeStatus.textContent = 'Clean ✓';
+                vapeStatus.className = 'card-status good';
+            } else if (data.vape_free === false) {
+                vapeCard.classList.add('state-bad');
+                document.getElementById('vape-no').classList.add('selected-no');
+                vapeStatus.textContent = 'Vaped';
+                vapeStatus.className = 'card-status active';
+            } else {
+                vapeStatus.textContent = '';
+                vapeStatus.className = 'card-status';
+            }
 
             // Drinking
             const drinkCard = document.getElementById('card-drink');
@@ -760,6 +806,7 @@
 
             // Streaks
             const streaks = calcStreaks();
+            document.getElementById('streak-vape').textContent = streaks.vape;
             document.getElementById('streak-sober').textContent = streaks.sober;
             document.getElementById('streak-pushups').textContent = streaks.pushups;
         }
@@ -770,20 +817,23 @@
             if (!hasData(data)) return 'empty';
             let score = 0; // start neutral
 
-            if (data.drinking === false) score += 2;        // sober = big win
+            if (data.vape_free === true) score += 1.5;       // vape-free = big win
+            else if (data.vape_free === false) score -= 1;   // vaped
+
+            if (data.drinking === false) score += 2;          // sober = big win
             else if (data.drinking === true) {
-                score -= 1;                                  // drank
-                if (data.second_round === true) score -= 2;  // 2nd round = bad
+                score -= 1;                                    // drank
+                if (data.second_round === true) score -= 2;    // 2nd round = bad
             }
 
-            if (data.pushups === true) score += 1;           // pushups = win
-            else if (data.pushups === false) score -= 0.5;   // skipped
+            if (data.pushups === true) score += 1;             // pushups = win
+            else if (data.pushups === false) score -= 0.5;     // skipped
 
-            if (score >= 2.5) return 'great';     // sober + pushups
-            if (score >= 1) return 'good';         // sober OR pushups
+            if (score >= 3.5) return 'great';     // vape-free + sober + pushups
+            if (score >= 1.5) return 'good';      // most things good
             if (score >= 0) return 'ok';           // mixed
-            if (score >= -1.5) return 'bad';       // drank, no 2nd round
-            return 'terrible';                      // drank + 2nd round
+            if (score >= -1.5) return 'bad';       // some bad
+            return 'terrible';                      // drank + 2nd round + vaped
         }
 
         // ── Stats page ──
@@ -804,6 +854,11 @@
             }
 
             cards.innerHTML =
+                '<div class="stat-card full">' +
+                    '<div class="stat-num green">' + thisWeek.vapeFree + '/' + thisWeek.total + '</div>' +
+                    '<div class="stat-label">Vape-free days</div>' +
+                    compare(thisWeek.vapeFree, lastWeek.vapeFree, false) +
+                '</div>' +
                 '<div class="stat-card">' +
                     '<div class="stat-num red">' + thisWeek.drinking + '/' + thisWeek.total + '</div>' +
                     '<div class="stat-label">Drinking nights</div>' +
@@ -869,7 +924,7 @@
 
             // ── Metric breakdown (last 30 days) ──
             const mb = document.getElementById('metric-breakdown');
-            let drinkCount = 0, round2Count = 0, pushupCount = 0, soberCount = 0, totalDays = 0;
+            let drinkCount = 0, round2Count = 0, pushupCount = 0, soberCount = 0, vapeFreeCount = 0, totalDays = 0;
             for (let i = 0; i < 30; i++) {
                 const data = daysAgo(i);
                 if (!hasData(data)) continue;
@@ -877,11 +932,16 @@
                 if (data.drinking === true) { drinkCount++; if (data.second_round === true) round2Count++; }
                 if (data.drinking === false) soberCount++;
                 if (data.pushups === true) pushupCount++;
+                if (data.vape_free === true) vapeFreeCount++;
             }
 
             const pct = (n, t) => t > 0 ? Math.round((n / t) * 100) + '%' : '—';
 
             mb.innerHTML =
+                '<div class="metric-row">' +
+                    '<div class="metric-left"><span class="metric-icon">🚭</span><span class="metric-name">Vape-free days</span></div>' +
+                    '<div class="metric-right"><div class="metric-val green">' + vapeFreeCount + '</div><div class="metric-detail">' + pct(vapeFreeCount, totalDays) + ' of logged days</div></div>' +
+                '</div>' +
                 '<div class="metric-row">' +
                     '<div class="metric-left"><span class="metric-icon">🍺</span><span class="metric-name">Drinking nights</span></div>' +
                     '<div class="metric-right"><div class="metric-val red">' + drinkCount + '</div><div class="metric-detail">' + pct(drinkCount, totalDays) + ' of logged days</div></div>' +
@@ -945,6 +1005,8 @@
                 });
 
                 let rows = '';
+                if (data.vape_free === true) rows += '<div class="history-row"><span>Vaping</span><span class="val green">Clean ✓</span></div>';
+                else if (data.vape_free === false) rows += '<div class="history-row"><span>Vaping</span><span class="val red">Vaped</span></div>';
                 if (data.drinking === true) {
                     let detail = 'Yes';
                     if (data.drink_start && data.drink_end) detail = data.drink_start + ' → ' + data.drink_end;
@@ -1070,6 +1132,17 @@
                 const label = w === 0 ? 'Now' : w + 'w';
                 weekData.push({ ...wd, label });
             }
+
+            // Vape-free days per week
+            buildLineChart('chart-vape-line', {
+                title: 'Vape-free days',
+                icon: '🚭',
+                color: '#4ecca3',
+                max: 7,
+                lowerBetter: false,
+                suffix: '/7',
+                data: weekData.map(w => ({ label: w.label, value: w.vapeFree }))
+            });
 
             // Drinking nights per week
             buildLineChart('chart-drink-line', {
